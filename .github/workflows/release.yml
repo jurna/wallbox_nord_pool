@@ -22,7 +22,7 @@ jobs:
 
       - name: Build
         run: go build
-      - uses: ncipollo/release-action@v1
+      - uses: ncipollo/release-action@v1.13.0
         with:
           artifacts: "wallbox_nord_pool"
 
