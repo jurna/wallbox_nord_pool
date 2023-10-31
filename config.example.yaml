@@ -1,0 +1,13 @@
+nord-pool:
+  max-price: 0.10
+  vat: 0.21
+  transmission-cost:
+    day: 0.092
+    night: 0.06
+    day-starts-at: 7
+    night-starts-at: 23
+    timezone: Etc/GMT-2
+wallbox:
+  username: "***"
+  password: "***"
+  device-id: "***"
