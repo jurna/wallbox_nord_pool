@@ -2,6 +2,7 @@ package wallbox
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +30,14 @@ var (
 )
 
 type ChargerStatus string
+
+var DefaultClient = &http.Client{
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	},
+}
 
 const (
 	Unknown       ChargerStatus = "Unknown"
@@ -130,7 +139,7 @@ func (wallbox Wallbox) GetStatus() (status ChargerStatus, err error) {
 		return
 	}
 	wallbox.addHeaders(req)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -165,7 +174,7 @@ func (wallbox Wallbox) Unlock() (err error) {
 		return
 	}
 	wallbox.addHeaders(req)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -190,7 +199,7 @@ func (wallbox Wallbox) SetEnergyCost(cost float64) (err error) {
 		return
 	}
 	wallbox.addHeaders(req)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -223,7 +232,7 @@ func (wallbox Wallbox) remoteAction(action RemoteAction) (err error) {
 		return
 	}
 	wallbox.addHeaders(req)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}
@@ -257,7 +266,7 @@ func getNewToken(username string, password string) (token UserToken, err error) 
 		return
 	}
 	req.SetBasicAuth(username, password)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}

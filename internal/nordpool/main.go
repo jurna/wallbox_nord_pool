@@ -1,6 +1,7 @@
 package nordpool
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,7 +30,7 @@ type TransmissionCostConfig struct {
 	Night         float64 `yaml:"night"`
 	DayStartsAt   int     `yaml:"day-starts-at"`
 	NightStartsAt int     `yaml:"night-starts-at"`
-	Timezone      string  `yaml:"timezone"`
+	TimeOffset    int     `yaml:"time-offset"`
 }
 
 type NordPoolConfig struct {
@@ -44,6 +45,14 @@ const (
 	PriceGood   PriceStatus = "PriceGood"
 	PriceTooBig             = "PriceTooBig"
 )
+
+var DefaultClient = &http.Client{
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	},
+}
 
 var (
 	errPricesFileDoesNotExist = errors.New("prices file does not exist")
@@ -68,10 +77,7 @@ func GetPrice(date time.Time, config NordPoolConfig) (price float64, err error) 
 
 func calculatePrice(date time.Time, poolPrice float64, config NordPoolConfig) (price float64, err error) {
 	costConfig := config.TransmissionCost
-	location, err := time.LoadLocation(costConfig.Timezone)
-	if err != nil {
-		return
-	}
+	location := time.FixedZone("offset", costConfig.TimeOffset*3600)
 	transmissionDate := date.In(location)
 	workday := transmissionDate.Weekday() != time.Saturday && transmissionDate.Weekday() != time.Sunday
 
@@ -104,7 +110,7 @@ func fetchDates(date time.Time) (prices Prices, err error) {
 	q.Add("start", trunc.Format(time.RFC3339))
 	q.Add("end", trunc.AddDate(0, 0, 1).Format(time.RFC3339))
 	req.URL.RawQuery = q.Encode()
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := DefaultClient.Do(req)
 	if err != nil {
 		return
 	}

@@ -12,7 +12,7 @@ func TestCalculatePriceNight(t *testing.T) {
 	config := NordPoolConfig{
 		MaxPrice:         0,
 		Vat:              0,
-		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, TimeOffset: 2},
 	}
 
 	p, err := calculatePrice(currentTime, 50, config)
@@ -31,7 +31,7 @@ func TestCalculatePriceDay(t *testing.T) {
 	config := NordPoolConfig{
 		MaxPrice:         0,
 		Vat:              0,
-		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, TimeOffset: 2},
 	}
 
 	p, err := calculatePrice(currentTime, 50, config)
@@ -50,7 +50,7 @@ func TestCalculatePriceWeekend(t *testing.T) {
 	config := NordPoolConfig{
 		MaxPrice:         0,
 		Vat:              0,
-		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, TimeOffset: 2},
 	}
 
 	p, err := calculatePrice(currentTime, 50, config)
