@@ -42,6 +42,7 @@ var DefaultClient = &http.Client{
 const (
 	Unknown       ChargerStatus = "Unknown"
 	Waiting                     = "Waiting"
+	WaitingForCar               = "WaitingForCar"
 	Charging                    = "Charging"
 	Ready                       = "Ready"
 	Paused                      = "Paused"
@@ -57,7 +58,6 @@ const (
 var intToStatusMap = map[int]ChargerStatus{
 	164: Waiting,
 	180: Waiting,
-	181: Waiting,
 	183: Waiting,
 	184: Waiting,
 	185: Waiting,
@@ -65,6 +65,7 @@ var intToStatusMap = map[int]ChargerStatus{
 	187: Waiting,
 	188: Waiting,
 	189: Waiting,
+	181: WaitingForCar,
 	193: Charging,
 	194: Charging,
 	195: Charging,

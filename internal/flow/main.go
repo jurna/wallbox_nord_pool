@@ -19,6 +19,8 @@ func DoFlow(state FlowState) (action ActionFunc) {
 		return actionUnlock
 	case FlowState{wallbox.Waiting, nordpool.PriceGood}:
 		return actionResume
+	case FlowState{wallbox.Paused, nordpool.PriceGood}:
+		return actionResume
 	case FlowState{wallbox.Charging, nordpool.PriceTooBig}:
 		return actionPause
 	default:
