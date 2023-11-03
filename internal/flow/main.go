@@ -6,33 +6,37 @@ import (
 	"wallbox_nord_pool/internal/wallbox"
 )
 
-type FlowState struct {
+type State struct {
 	ChargerStatus wallbox.ChargerStatus
 	PriceStatus   nordpool.PriceStatus
 }
 
+var (
+	LockedWaitingPriceGood = State{wallbox.LockedWaiting, nordpool.PriceGood}
+	PausedPriceGood        = State{wallbox.Paused, nordpool.PriceGood}
+	ChargingPriceTooBig    = State{wallbox.Charging, nordpool.PriceTooBig}
+)
+
 type ActionFunc func(wb wallbox.Wallbox, energyCost float64) (err error)
 
-func DoFlow(state FlowState) (action ActionFunc) {
+func DoFlow(state State) (action ActionFunc) {
 	switch state {
-	case FlowState{wallbox.LockedWaiting, nordpool.PriceGood}:
+	case LockedWaitingPriceGood:
 		return actionUnlock
-	case FlowState{wallbox.Waiting, nordpool.PriceGood}:
+	case PausedPriceGood:
 		return actionResume
-	case FlowState{wallbox.Paused, nordpool.PriceGood}:
-		return actionResume
-	case FlowState{wallbox.Charging, nordpool.PriceTooBig}:
+	case ChargingPriceTooBig:
 		return actionPause
 	default:
 		return actionEmpty
 	}
 }
 
-func NewFlowsState(price float64, cutOffPrice float64, chargerStatus wallbox.ChargerStatus) (flowState FlowState) {
+func NewFlowsState(price float64, cutOffPrice float64, chargerStatus wallbox.ChargerStatus) (flowState State) {
 	if price > cutOffPrice {
-		return FlowState{chargerStatus, nordpool.PriceTooBig}
+		return State{chargerStatus, nordpool.PriceTooBig}
 	} else {
-		return FlowState{chargerStatus, nordpool.PriceGood}
+		return State{chargerStatus, nordpool.PriceGood}
 	}
 }
 func actionUnlock(wb wallbox.Wallbox, energyCost float64) (err error) {
