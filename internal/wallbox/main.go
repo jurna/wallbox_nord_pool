@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -19,8 +20,10 @@ type Config struct {
 }
 
 type Wallbox struct {
-	token    string
-	deviceId string
+	token       string
+	deviceId    string
+	s3svc       *s3.S3
+	awsS3Bucket string
 }
 
 const tokenFile = "user_token.json"
@@ -112,21 +115,21 @@ type ChargerConfig struct {
 	EnergyCost float64 `json:"energyCost,omitempty"`
 }
 
-func NewWallbox(config Config) (wallbox Wallbox, err error) {
-	token, err := getToken(config.Username, config.Password)
+func NewWallbox(config Config, s3Svc *s3.S3, awsS3Bucket string) (wallbox Wallbox, err error) {
+	token, err := getToken(s3Svc, awsS3Bucket, config.Username, config.Password)
 	if err != nil {
 		return
 	}
-	return Wallbox{token, config.DeviceId}, err
+	return Wallbox{token, config.DeviceId, s3Svc, awsS3Bucket}, err
 }
 
-func getToken(username string, password string) (token string, err error) {
-	userToken, err := readToken()
+func getToken(s3svc *s3.S3, awsS3Bucket string, username string, password string) (token string, err error) {
+	userToken, err := readToken(s3svc, awsS3Bucket)
 	if err != nil {
 		if !errors.Is(err, errTokenFileDoesNotExist) {
 			return
 		}
-		userToken, err = getNewToken(username, password)
+		userToken, err = getNewToken(s3svc, awsS3Bucket, username, password)
 		if err != nil {
 			return
 		}
@@ -261,7 +264,7 @@ func mapToStatus(status int) (chargerStatus ChargerStatus) {
 	}
 }
 
-func getNewToken(username string, password string) (token UserToken, err error) {
+func getNewToken(s3svc *s3.S3, awsS3Bucket string, username string, password string) (token UserToken, err error) {
 	req, err := http.NewRequest("GET", "https://api.wall-box.com/auth/token/user", nil)
 	if err != nil {
 		return
@@ -282,7 +285,7 @@ func getNewToken(username string, password string) (token UserToken, err error) 
 		return
 	}
 
-	err = writeToken(tokenBytes)
+	err = writeToken(s3svc, awsS3Bucket, tokenBytes)
 	if err != nil {
 		return
 	}
@@ -295,23 +298,28 @@ func handleHttpError(resp *http.Response) error {
 	return fmt.Errorf("invalid response %d %s", resp.StatusCode, tokenBytes)
 }
 
-func writeToken(token []byte) (err error) {
-	f, err := os.Create(tokenFile)
-	if err != nil {
-		return
-	}
-	_, err = f.Write(token)
+func writeToken(s3svc *s3.S3, awsS3Bucket string, token []byte) (err error) {
+	_, err = s3svc.PutObject(&s3.PutObjectInput{
+		Body:   bytes.NewReader(token),
+		Bucket: &awsS3Bucket,
+		Key:    aws.String(tokenFile),
+	})
 	return err
 }
 
-func readToken() (token UserToken, err error) {
-	f, err := os.Open(tokenFile)
+func readToken(s3svc *s3.S3, awsS3Bucket string) (token UserToken, err error) {
+	input := &s3.GetObjectInput{Bucket: aws.String(awsS3Bucket),
+		Key: aws.String(tokenFile),
+	}
+	output, err := s3svc.GetObject(input)
 	if err != nil {
 		return token, fmt.Errorf("%s - %w", tokenFile, errTokenFileDoesNotExist)
 	}
-	tokenBytes, err := io.ReadAll(f)
+	defer output.Body.Close()
+	tokenBytes, err := io.ReadAll(output.Body)
+
 	if err != nil {
-		_ = os.Remove(f.Name())
+		removeSilent(s3svc, awsS3Bucket, tokenFile)
 		return
 	}
 	err = json.Unmarshal(tokenBytes, &token)
@@ -320,8 +328,13 @@ func readToken() (token UserToken, err error) {
 	}
 	ttlTime := time.Unix(token.Ttl, 0)
 	if ttlTime.Before(time.Now()) {
-		_ = os.Remove(f.Name())
+		removeSilent(s3svc, awsS3Bucket, tokenFile)
 		return UserToken{}, fmt.Errorf("expired token. Ttl time %s - %w", ttlTime, errTokenFileDoesNotExist)
 	}
 	return
+}
+
+func removeSilent(s3Svc *s3.S3, awsS3Bucket string, object string) {
+	_, _ = s3Svc.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(awsS3Bucket),
+		Key: aws.String(object)})
 }

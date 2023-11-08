@@ -22,12 +22,12 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Build linux amd64
-        run: GOOS=linux GOARCH=amd64 go build -o wallbox_nord_pool_linux_amd64
+      - name: Build
+        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
 
-      - name: Build linux arm
-        run: GOOS=linux GOARCH=arm GOARM=5 go build -o wallbox_nord_pool_linux_arm
+      - name: Zip
+        run: zip wallbox_nord_pool.zip wallbox_nord_pool
 
       - uses: ncipollo/release-action@v1.13.0
         with:
-          artifacts: "wallbox_nord_pool_linux_amd64,wallbox_nord_pool_linux_arm"
+          artifacts: "wallbox_nord_pool.zip"

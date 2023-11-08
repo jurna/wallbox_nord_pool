@@ -1,7 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v3"
 	"io"
 	"log"
@@ -13,37 +16,56 @@ import (
 )
 
 func main() {
-	err, config := readConfig()
+	lambda.Start(run)
+	//err := run()
+	//if err != nil {
+	//	log.Fatalf("Fatal error: %v", err)
+	//}
+}
+
+func run() error {
+	awsRegion := os.Getenv("AWS_REGION")
+	awsS3Bucket := os.Getenv("AWS_S3_BUCKET")
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(awsRegion)})
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err)
+		return err
 	}
-	wb, err := wallbox.NewWallbox(config.Wallbox)
+	svc := s3.New(sess)
+	err, config := readConfig(svc, awsS3Bucket)
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err)
+		return err
 	}
-	price, err := nordpool.GetPrice(time.Now(), config.NordPool)
+	wb, err := wallbox.NewWallbox(config.Wallbox, svc, awsS3Bucket)
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err)
+		return err
+	}
+	price, err := nordpool.GetPrice(svc, awsS3Bucket, time.Now(), config.NordPool)
+	if err != nil {
+		return err
 	}
 	status, err := wb.GetStatus()
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err)
+		return err
 	}
 	var flowState = flow.NewFlowsState(price, config.NordPool.MaxPrice, status)
 	log.Printf("Flow for state %s, price %f", flowState, price)
 	err = flow.DoFlow(flowState)(wb, price)
 	if err != nil {
-		log.Fatalf("Fatal error: %s", err)
+		return err
 	}
-
+	return nil
 }
 
-func readConfig() (err error, config Config) {
-	f, err := os.Open("config.yaml")
-	if err != nil {
-		return fmt.Errorf("config file not found: %w", err), config
+func readConfig(svc *s3.S3, awsS3Bucket string) (err error, config Config) {
+	input := &s3.GetObjectInput{Bucket: aws.String(awsS3Bucket),
+		Key: aws.String("config.yaml"),
 	}
-	configBytes, err := io.ReadAll(f)
+	output, err := svc.GetObject(input)
+	if err != nil {
+		return
+	}
+	defer output.Body.Close()
+	configBytes, err := io.ReadAll(output.Body)
 	if err != nil {
 		return
 	}

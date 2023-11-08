@@ -1,13 +1,15 @@
 package nordpool
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -59,13 +61,13 @@ var (
 	errPriceNotFound          = errors.New("price not found")
 )
 
-func GetPrice(date time.Time, config NordPoolConfig) (price float64, err error) {
-	prices, err := readPrices(date)
+func GetPrice(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolConfig) (price float64, err error) {
+	prices, err := readPrices(s3svc, awsS3Bucket, date)
 	if err != nil {
 		if !errors.Is(err, errPricesFileDoesNotExist) {
 			return
 		}
-		prices, err = fetchDates(date)
+		prices, err = fetchDates(s3svc, awsS3Bucket, date)
 		if err != nil {
 			return
 		}
@@ -100,7 +102,7 @@ func findPrice(prices []Price, date time.Time) (price float64, err error) {
 	return price, fmt.Errorf("%d : %w", timestamp, errPriceNotFound)
 }
 
-func fetchDates(date time.Time) (prices Prices, err error) {
+func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices, err error) {
 	req, err := http.NewRequest("GET", "https://dashboard.elering.ee/api/nps/price", nil)
 	if err != nil {
 		return
@@ -114,27 +116,27 @@ func fetchDates(date time.Time) (prices Prices, err error) {
 	if err != nil {
 		return
 	}
-	bytes, err := io.ReadAll(resp.Body)
+	pricesBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
-	err = writeDates(date, bytes)
+	err = writeDates(s3svc, awsS3Bucket, date, pricesBytes)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(bytes, &prices)
+	err = json.Unmarshal(pricesBytes, &prices)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func writeDates(date time.Time, prices []byte) (err error) {
-	f, err := os.Create(pricesFileName(date))
-	if err != nil {
-		return
-	}
-	_, err = f.Write(prices)
+func writeDates(s3svc *s3.S3, awsS3Bucket string, date time.Time, prices []byte) (err error) {
+	_, err = s3svc.PutObject(&s3.PutObjectInput{
+		Body:   bytes.NewReader(prices),
+		Bucket: &awsS3Bucket,
+		Key:    aws.String(pricesFileName(date)),
+	})
 	return err
 }
 
@@ -142,16 +144,20 @@ func pricesFileName(date time.Time) string {
 	return fmt.Sprintf("nord_pool_%s.json", date.Format(time.DateOnly))
 }
 
-func readPrices(date time.Time) (prices Prices, err error) {
+func readPrices(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices, err error) {
 	fileName := pricesFileName(date)
-	f, err := os.Open(fileName)
+	input := &s3.GetObjectInput{Bucket: aws.String(awsS3Bucket),
+		Key: &fileName,
+	}
+	output, err := s3svc.GetObject(input)
 	if err != nil {
 		return prices, fmt.Errorf("%s - %w", fileName, errPricesFileDoesNotExist)
 	}
-	bytes, err := io.ReadAll(f)
+	defer output.Body.Close()
+	pricesBytes, err := io.ReadAll(output.Body)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(bytes, &prices)
+	err = json.Unmarshal(pricesBytes, &prices)
 	return
 }
