@@ -2,7 +2,6 @@ package nordpool
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,7 +31,7 @@ type TransmissionCostConfig struct {
 	Night         float64 `yaml:"night"`
 	DayStartsAt   int     `yaml:"day-starts-at"`
 	NightStartsAt int     `yaml:"night-starts-at"`
-	TimeOffset    int     `yaml:"time-offset"`
+	Timezone      string  `yaml:"timezone"`
 }
 
 type NordPoolConfig struct {
@@ -47,14 +46,6 @@ const (
 	PriceGood   PriceStatus = "PriceGood"
 	PriceTooBig             = "PriceTooBig"
 )
-
-var DefaultClient = &http.Client{
-	Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	},
-}
 
 var (
 	errPricesFileDoesNotExist = errors.New("prices file does not exist")
@@ -79,7 +70,10 @@ func GetPrice(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolC
 
 func calculatePrice(date time.Time, poolPrice float64, config NordPoolConfig) (price float64, err error) {
 	costConfig := config.TransmissionCost
-	location := time.FixedZone("offset", costConfig.TimeOffset*3600)
+	location, err := time.LoadLocation(costConfig.Timezone)
+	if err != nil {
+		return
+	}
 	transmissionDate := date.In(location)
 	workday := transmissionDate.Weekday() != time.Saturday && transmissionDate.Weekday() != time.Sunday
 
@@ -112,7 +106,7 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 	q.Add("start", trunc.Format(time.RFC3339))
 	q.Add("end", trunc.AddDate(0, 0, 1).Format(time.RFC3339))
 	req.URL.RawQuery = q.Encode()
-	resp, err := DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return
 	}

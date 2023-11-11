@@ -6,7 +6,7 @@ nord-pool:
     night: 0.06
     day-starts-at: 7
     night-starts-at: 23
-    time-offset: 2
+    timezone: Etc/GMT+2
 wallbox:
   username: "***"
   password: "***"
