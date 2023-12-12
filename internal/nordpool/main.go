@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -37,6 +38,7 @@ type TransmissionCostConfig struct {
 type NordPoolConfig struct {
 	MaxPrice         float64                `yaml:"max-price"`
 	Vat              float64                `yaml:"vat"`
+	Timezone         string                 `yaml:"timezone"`
 	TransmissionCost TransmissionCostConfig `yaml:"transmission-cost"`
 }
 
@@ -53,18 +55,23 @@ var (
 )
 
 func GetPrice(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolConfig) (price float64, err error) {
-	prices, err := readPrices(s3svc, awsS3Bucket, date)
+	location, err := time.LoadLocation(config.Timezone)
+	if err != nil {
+		return
+	}
+	locationDate := date.In(location)
+	prices, err := readPrices(s3svc, awsS3Bucket, locationDate)
 	if err != nil {
 		if !errors.Is(err, errPricesFileDoesNotExist) {
 			return
 		}
-		prices, err = fetchDates(s3svc, awsS3Bucket, date)
+		prices, err = fetchDates(s3svc, awsS3Bucket, locationDate)
 		if err != nil {
 			return
 		}
 	}
-	poolPrice, err := findPrice(prices.Data.Lt, date)
-	price, err = calculatePrice(date, poolPrice, config)
+	poolPrice, err := findPrice(prices.Data.Lt, locationDate)
+	price, err = calculatePrice(locationDate, poolPrice, config)
 	return
 }
 
@@ -87,6 +94,7 @@ func calculatePrice(date time.Time, poolPrice float64, config NordPoolConfig) (p
 
 func findPrice(prices []Price, date time.Time) (price float64, err error) {
 	timestamp := date.Truncate(time.Hour).Unix()
+	log.Printf("Looking for price at %d, date %s", timestamp, date)
 	for _, p := range prices {
 		if p.Timestamp == timestamp {
 			price = p.Price
@@ -105,6 +113,7 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 	trunc := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	q.Add("start", trunc.Format(time.RFC3339))
 	q.Add("end", trunc.AddDate(0, 0, 1).Format(time.RFC3339))
+	log.Printf("Fetching prices from %s to %s", q.Get("start"), q.Get("end"))
 	req.URL.RawQuery = q.Encode()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -140,6 +149,7 @@ func pricesFileName(date time.Time) string {
 
 func readPrices(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices, err error) {
 	fileName := pricesFileName(date)
+	log.Printf("Reading prices from %s", fileName)
 	input := &s3.GetObjectInput{Bucket: aws.String(awsS3Bucket),
 		Key: &fileName,
 	}

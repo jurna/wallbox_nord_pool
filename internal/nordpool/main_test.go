@@ -7,12 +7,13 @@ import (
 )
 
 func TestCalculatePrice(t *testing.T) {
-	location, _ := time.LoadLocation("Europe/Vilnius")
 	config := NordPoolConfig{
 		MaxPrice:         0,
 		Vat:              0,
+		Timezone:         "Europe/Vilnius",
 		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
 	}
+	location, _ := time.LoadLocation(config.Timezone)
 	tests := []struct {
 		name        string
 		currentTime time.Time
