@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -88,7 +87,6 @@ func calculatePrice(date time.Time, poolPrice float64, config NordPoolConfig) (p
 
 func findPrice(prices []Price, date time.Time) (price float64, err error) {
 	timestamp := date.Truncate(time.Hour).Unix()
-	log.Printf("Looking for price at %d, date %s", timestamp, date)
 	for _, p := range prices {
 		if p.Timestamp == timestamp {
 			price = p.Price
@@ -107,7 +105,6 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 	trunc := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	q.Add("start", trunc.Format(time.RFC3339))
 	q.Add("end", trunc.AddDate(0, 0, 1).Format(time.RFC3339))
-	log.Printf("Fetching prices from %s to %s", q.Get("start"), q.Get("end"))
 	req.URL.RawQuery = q.Encode()
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -125,7 +122,6 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 	if err != nil {
 		return
 	}
-	log.Printf("Fetched %+v prices", prices.Data.Lt)
 	return
 }
 
