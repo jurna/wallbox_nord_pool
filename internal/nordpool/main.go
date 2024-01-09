@@ -79,17 +79,12 @@ func GetMinPriceTill(s3svc *s3.S3, awsS3Bucket string, date time.Time, config No
 	if err != nil {
 		return
 	}
-	poolPrice, err := findMinPrice(config.ChargeTillHour, prices.Data.Lt, locationDate)
-	if err != nil {
-		return
-	}
-	price, err = calculatePrice(locationDate, poolPrice, config)
-	return
+	return findMinPrice(config, prices.Data.Lt, locationDate)
 }
 
-func findMinPrice(tillHour int, prices []Price, locationDate time.Time) (price float64, err error) {
+func findMinPrice(config NordPoolConfig, prices []Price, locationDate time.Time) (price float64, err error) {
 	price = math.MaxFloat64
-	for locationDate.Hour() != tillHour {
+	for locationDate.Hour() != config.ChargeTillHour {
 		var poolPrice float64
 		poolPrice, err = findPrice(prices, locationDate)
 		if err != nil {
@@ -98,6 +93,7 @@ func findMinPrice(tillHour int, prices []Price, locationDate time.Time) (price f
 			}
 			return
 		}
+		poolPrice, err = calculatePrice(locationDate, poolPrice, config)
 		if poolPrice < price {
 			price = poolPrice
 		}

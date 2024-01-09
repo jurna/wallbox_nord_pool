@@ -51,14 +51,14 @@ func TestFindMinPrice(t *testing.T) {
 		wantPrice float64
 	}{
 		{name: "Empty", prices: []Price{}, wantPrice: math.MaxFloat64},
-		{name: "Single", prices: []Price{{Timestamp: 1690840800, Price: 10}}, wantPrice: 10},
-		{name: "First lower", prices: []Price{{Timestamp: 1690840800, Price: 10}, {Timestamp: 1690844400, Price: 20}}, wantPrice: 10},
-		{name: "Second lower", prices: []Price{{Timestamp: 1690840800, Price: 20}, {Timestamp: 1690844400, Price: 10}}, wantPrice: 10},
-		{name: "Three prices", prices: []Price{{Timestamp: 1690840800, Price: 20}, {Timestamp: 1690844400, Price: 10}, {Timestamp: 1690848000, Price: 20}}, wantPrice: 10},
+		{name: "Single", prices: []Price{{Timestamp: 1690840800, Price: 100}}, wantPrice: 0.15},
+		{name: "First lower", prices: []Price{{Timestamp: 1690840800, Price: 100}, {Timestamp: 1690844400, Price: 200}}, wantPrice: 0.15},
+		{name: "Second lower", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690844400, Price: 100}}, wantPrice: 0.15},
+		{name: "Three prices", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690844400, Price: 100}, {Timestamp: 1690848000, Price: 200}}, wantPrice: 0.15},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := findMinPrice(8, tt.prices, time.Date(2023, 8, 1, 1, 0, 0, 0, location))
+			p, err := findMinPrice(config, tt.prices, time.Date(2023, 8, 1, 1, 0, 0, 0, location))
 			if err != nil {
 				t.Errorf("Got Error %s", err)
 			}
