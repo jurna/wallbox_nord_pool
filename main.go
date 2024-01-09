@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -15,11 +16,11 @@ import (
 )
 
 func main() {
-	//lambda.Start(run)
-	err := run()
-	if err != nil {
-		log.Fatalf("Fatal error: %v", err)
-	}
+	lambda.Start(run)
+	//err := run()
+	//if err != nil {
+	//	log.Fatalf("Fatal error: %v", err)
+	//}
 }
 
 func run() error {
