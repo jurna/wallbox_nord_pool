@@ -32,8 +32,8 @@ func DoFlow(state State) (action ActionFunc) {
 	}
 }
 
-func NewFlowsState(price float64, cutOffPrice float64, chargerStatus wallbox.ChargerStatus) (flowState State) {
-	if price > cutOffPrice {
+func NewFlowsState(price float64, desiredPrice float64, chargerStatus wallbox.ChargerStatus) (flowState State) {
+	if price > desiredPrice {
 		return State{chargerStatus, nordpool.PriceTooBig}
 	} else {
 		return State{chargerStatus, nordpool.PriceGood}

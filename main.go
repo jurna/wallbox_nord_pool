@@ -43,17 +43,34 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	desiredPrice, err := desiredPrice(svc, awsS3Bucket, config)
+	if err != nil {
+		return err
+	}
 	status, err := wb.GetStatus()
 	if err != nil {
 		return err
 	}
-	var flowState = flow.NewFlowsState(price, config.NordPool.MaxPrice, status)
-	log.Printf("Flow for state %s, price %f", flowState, price)
+	var flowState = flow.NewFlowsState(price, desiredPrice, status)
+	log.Printf("Flow for state %s, price %f, desiredPrice %f", flowState, price, desiredPrice)
 	err = flow.DoFlow(flowState)(wb, price)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func desiredPrice(svc *s3.S3, awsS3Bucket string, config Config) (desiredPrice float64, err error) {
+	minPrice, err := nordpool.GetMinPriceTill(svc, awsS3Bucket, time.Now(), config.NordPool)
+	if err != nil {
+		return
+	}
+	if minPrice > config.NordPool.MaxPrice {
+		desiredPrice = config.NordPool.MaxPrice
+	} else {
+		desiredPrice = minPrice
+	}
+	return
 }
 
 func readConfig(svc *s3.S3, awsS3Bucket string) (err error, config Config) {

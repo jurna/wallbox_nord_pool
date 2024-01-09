@@ -35,3 +35,36 @@ func TestCalculatePrice(t *testing.T) {
 		})
 	}
 }
+
+func TestFindMinPrice(t *testing.T) {
+	config := NordPoolConfig{
+		MaxPrice:         0,
+		ChargeTillHour:   8,
+		Vat:              0,
+		Timezone:         "Europe/Vilnius",
+		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+	}
+	location, _ := time.LoadLocation(config.Timezone)
+	tests := []struct {
+		name      string
+		prices    []Price
+		wantPrice float64
+	}{
+		{name: "Empty", prices: []Price{}, wantPrice: math.MaxFloat64},
+		{name: "Single", prices: []Price{{Timestamp: 1690840800, Price: 10}}, wantPrice: 10},
+		{name: "First lower", prices: []Price{{Timestamp: 1690840800, Price: 10}, {Timestamp: 1690844400, Price: 20}}, wantPrice: 10},
+		{name: "Second lower", prices: []Price{{Timestamp: 1690840800, Price: 20}, {Timestamp: 1690844400, Price: 10}}, wantPrice: 10},
+		{name: "Three prices", prices: []Price{{Timestamp: 1690840800, Price: 20}, {Timestamp: 1690844400, Price: 10}, {Timestamp: 1690848000, Price: 20}}, wantPrice: 10},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := findMinPrice(8, tt.prices, time.Date(2023, 8, 1, 1, 0, 0, 0, location))
+			if err != nil {
+				t.Errorf("Got Error %s", err)
+			}
+			if math.Abs(p-tt.wantPrice) > 0.001 {
+				t.Errorf("Got price %f, wanted %f", p, tt.wantPrice)
+			}
+		})
+	}
+}

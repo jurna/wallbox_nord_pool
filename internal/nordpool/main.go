@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"time"
 )
@@ -37,6 +38,7 @@ type TransmissionCostConfig struct {
 
 type NordPoolConfig struct {
 	MaxPrice         float64                `yaml:"max-price"`
+	ChargeTillHour   int                    `yaml:"charge-till-hour"`
 	Vat              float64                `yaml:"vat"`
 	Timezone         string                 `yaml:"timezone"`
 	TransmissionCost TransmissionCostConfig `yaml:"transmission-cost"`
@@ -55,12 +57,57 @@ var (
 )
 
 func GetPrice(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolConfig) (price float64, err error) {
-	location, err := time.LoadLocation(config.Timezone)
+	locationDate, err := locationDate(config, date)
 	if err != nil {
 		return
 	}
-	locationDate := date.In(location)
-	prices, err := readPrices(s3svc, awsS3Bucket, locationDate)
+	prices, err := getPrices(s3svc, awsS3Bucket, locationDate)
+	if err != nil {
+		return
+	}
+	poolPrice, err := findPrice(prices.Data.Lt, locationDate)
+	price, err = calculatePrice(locationDate, poolPrice, config)
+	return
+}
+
+func GetMinPriceTill(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolConfig) (price float64, err error) {
+	locationDate, err := locationDate(config, date)
+	if err != nil {
+		return
+	}
+	prices, err := getPrices(s3svc, awsS3Bucket, locationDate)
+	if err != nil {
+		return
+	}
+	poolPrice, err := findMinPrice(config.ChargeTillHour, prices.Data.Lt, locationDate)
+	if err != nil {
+		return
+	}
+	price, err = calculatePrice(locationDate, poolPrice, config)
+	return
+}
+
+func findMinPrice(tillHour int, prices []Price, locationDate time.Time) (price float64, err error) {
+	price = math.MaxFloat64
+	for locationDate.Hour() != tillHour {
+		var poolPrice float64
+		poolPrice, err = findPrice(prices, locationDate)
+		if err != nil {
+			if errors.Is(err, errPriceNotFound) {
+				return price, nil
+			}
+			return
+		}
+		if poolPrice < price {
+			price = poolPrice
+		}
+		locationDate = locationDate.Add(time.Hour)
+	}
+	return
+}
+
+func getPrices(s3svc *s3.S3, awsS3Bucket string, locationDate time.Time) (prices Prices, err error) {
+	prices, err = readPrices(s3svc, awsS3Bucket, locationDate)
 	if err != nil {
 		if !errors.Is(err, errPricesFileDoesNotExist) {
 			return
@@ -70,8 +117,15 @@ func GetPrice(s3svc *s3.S3, awsS3Bucket string, date time.Time, config NordPoolC
 			return
 		}
 	}
-	poolPrice, err := findPrice(prices.Data.Lt, locationDate)
-	price, err = calculatePrice(locationDate, poolPrice, config)
+	return
+}
+
+func locationDate(config NordPoolConfig, date time.Time) (locationDate time.Time, err error) {
+	location, err := time.LoadLocation(config.Timezone)
+	if err != nil {
+		return
+	}
+	locationDate = date.In(location)
 	return
 }
 
