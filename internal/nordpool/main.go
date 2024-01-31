@@ -160,7 +160,7 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 		return
 	}
 	q := req.URL.Query()
-	trunc := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	trunc := time.Date(date.Year(), date.Month(), date.Day(), date.Hour(), 0, 0, 0, date.Location())
 	q.Add("start", trunc.Format(time.RFC3339))
 	q.Add("end", trunc.AddDate(0, 0, 1).Format(time.RFC3339))
 	log.Printf("Fetching prices from %s to %s", q.Get("start"), q.Get("end"))
@@ -194,7 +194,7 @@ func writeDates(s3svc *s3.S3, awsS3Bucket string, date time.Time, prices []byte)
 }
 
 func pricesFileName(date time.Time) string {
-	return fmt.Sprintf("nord_pool_%s.json", date.Format(time.DateOnly))
+	return fmt.Sprintf("nord_pool_%s_%d.json", date.Format(time.DateOnly), date.Hour())
 }
 
 func readPrices(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices, err error) {
