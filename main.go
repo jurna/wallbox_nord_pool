@@ -17,6 +17,7 @@ import (
 
 func main() {
 	lambda.Start(run)
+
 	//err := run()
 	//if err != nil {
 	//	log.Fatalf("Fatal error: %v", err)
