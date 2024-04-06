@@ -37,11 +37,12 @@ type TransmissionCostConfig struct {
 }
 
 type NordPoolConfig struct {
-	MaxPrice         float64                `yaml:"max-price"`
-	ChargeTillHour   int                    `yaml:"charge-till-hour"`
-	Vat              float64                `yaml:"vat"`
-	Timezone         string                 `yaml:"timezone"`
-	TransmissionCost TransmissionCostConfig `yaml:"transmission-cost"`
+	MaxPrice            float64                `yaml:"max-price"`
+	ChargeTillHourDay   int                    `yaml:"charge-till-hour-day"`
+	ChargeTillHourNight int                    `yaml:"charge-till-hour-night"`
+	Vat                 float64                `yaml:"vat"`
+	Timezone            string                 `yaml:"timezone"`
+	TransmissionCost    TransmissionCostConfig `yaml:"transmission-cost"`
 }
 
 type PriceStatus string
@@ -84,7 +85,8 @@ func GetMinPriceTill(s3svc *s3.S3, awsS3Bucket string, date time.Time, config No
 
 func findMinPrice(config NordPoolConfig, prices []Price, locationDate time.Time) (price float64, err error) {
 	price = math.MaxFloat64
-	for locationDate.Hour() != config.ChargeTillHour {
+	chargeTillHour := getChargeTillHour(config, locationDate)
+	for locationDate.Hour() != chargeTillHour {
 		var poolPrice float64
 		poolPrice, err = findPrice(prices, locationDate)
 		if err != nil {
@@ -100,6 +102,14 @@ func findMinPrice(config NordPoolConfig, prices []Price, locationDate time.Time)
 		locationDate = locationDate.Add(time.Hour)
 	}
 	return
+}
+
+func getChargeTillHour(config NordPoolConfig, date time.Time) int {
+	if date.Hour() > config.ChargeTillHourNight {
+		return config.ChargeTillHourDay
+	} else {
+		return config.ChargeTillHourNight
+	}
 }
 
 func getPrices(s3svc *s3.S3, awsS3Bucket string, locationDate time.Time) (prices Prices, err error) {

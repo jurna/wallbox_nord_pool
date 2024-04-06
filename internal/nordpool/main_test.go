@@ -36,13 +36,14 @@ func TestCalculatePrice(t *testing.T) {
 	}
 }
 
-func TestFindMinPrice(t *testing.T) {
+func TestFindMinPriceNight(t *testing.T) {
 	config := NordPoolConfig{
-		MaxPrice:         0,
-		ChargeTillHour:   8,
-		Vat:              0,
-		Timezone:         "Europe/Vilnius",
-		TransmissionCost: TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+		MaxPrice:            0,
+		ChargeTillHourDay:   18,
+		ChargeTillHourNight: 8,
+		Vat:                 0,
+		Timezone:            "Europe/Vilnius",
+		TransmissionCost:    TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
 	}
 	location, _ := time.LoadLocation(config.Timezone)
 	tests := []struct {
@@ -59,6 +60,37 @@ func TestFindMinPrice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := findMinPrice(config, tt.prices, time.Date(2023, 8, 1, 1, 0, 0, 0, location))
+			if err != nil {
+				t.Errorf("Got Error %s", err)
+			}
+			if math.Abs(p-tt.wantPrice) > 0.001 {
+				t.Errorf("Got price %f, wanted %f", p, tt.wantPrice)
+			}
+		})
+	}
+}
+
+func TestFindMinPriceDay(t *testing.T) {
+	config := NordPoolConfig{
+		MaxPrice:            0,
+		ChargeTillHourDay:   18,
+		ChargeTillHourNight: 8,
+		Vat:                 0,
+		Timezone:            "Europe/Vilnius",
+		TransmissionCost:    TransmissionCostConfig{Day: 0.1, Night: 0.05, DayStartsAt: 7, NightStartsAt: 23, Timezone: "Etc/GMT-2"},
+	}
+	location, _ := time.LoadLocation(config.Timezone)
+	tests := []struct {
+		name      string
+		prices    []Price
+		wantPrice float64
+	}{
+		//{name: "Empty", prices: []Price{}, wantPrice: math.MaxFloat64},
+		{name: "Single", prices: []Price{{Timestamp: 1690880400, Price: 100}}, wantPrice: 0.20},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := findMinPrice(config, tt.prices, time.Date(2023, 8, 1, 12, 0, 0, 0, location))
 			if err != nil {
 				t.Errorf("Got Error %s", err)
 			}
