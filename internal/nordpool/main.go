@@ -105,7 +105,7 @@ func findMinPrice(config NordPoolConfig, prices []Price, locationDate time.Time)
 }
 
 func getChargeTillHour(config NordPoolConfig, date time.Time) int {
-	if date.Hour() > config.ChargeTillHourNight && date.Hour() <= config.ChargeTillHourDay {
+	if date.Hour() >= config.ChargeTillHourNight && date.Hour() < config.ChargeTillHourDay {
 		return config.ChargeTillHourDay
 	} else {
 		return config.ChargeTillHourNight
