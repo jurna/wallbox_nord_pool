@@ -16,6 +16,7 @@ func TestDoFlow(t *testing.T) {
 	}{
 		{name: "LockedWaitingPriceGood", state: LockedWaitingPriceGood, wantAction: "wallbox_nord_pool/internal/flow.actionUnlock"},
 		{name: "PausedPriceGood", state: PausedPriceGood, wantAction: "wallbox_nord_pool/internal/flow.actionResume"},
+		{name: "ScheduledPriceGood", state: ScheduledPriceGood, wantAction: "wallbox_nord_pool/internal/flow.actionResume"},
 		{name: "ChargingPriceTooBig", state: ChargingPriceTooBig, wantAction: "wallbox_nord_pool/internal/flow.actionPause"},
 		{name: "WaitingForCarPriceGood", state: State{wallbox.WaitingForCar, nordpool.PriceGood}, wantAction: "wallbox_nord_pool/internal/flow.actionEmpty"},
 		{name: "WaitingPriceGood", state: State{wallbox.Waiting, nordpool.PriceGood}, wantAction: "wallbox_nord_pool/internal/flow.actionEmpty"},

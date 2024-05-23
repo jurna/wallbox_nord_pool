@@ -14,6 +14,7 @@ type State struct {
 var (
 	LockedWaitingPriceGood = State{wallbox.LockedWaiting, nordpool.PriceGood}
 	PausedPriceGood        = State{wallbox.Paused, nordpool.PriceGood}
+	ScheduledPriceGood     = State{wallbox.Scheduled, nordpool.PriceGood}
 	ChargingPriceTooBig    = State{wallbox.Charging, nordpool.PriceTooBig}
 )
 
@@ -24,6 +25,8 @@ func DoFlow(state State) (action ActionFunc) {
 	case LockedWaitingPriceGood:
 		return actionUnlock
 	case PausedPriceGood:
+		return actionResume
+	case ScheduledPriceGood:
 		return actionResume
 	case ChargingPriceTooBig:
 		return actionPause
