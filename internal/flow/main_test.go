@@ -31,3 +31,24 @@ func TestDoFlow(t *testing.T) {
 		})
 	}
 }
+
+func TestNewFlowsState(t *testing.T) {
+	tests := []struct {
+		name            string
+		price           float64
+		wantPriceStatus nordpool.PriceStatus
+	}{
+		{name: "PriceEqualsDesiredPrice", price: 0.10, wantPriceStatus: nordpool.PriceGood},
+		{name: "PriceHigherWithinThreshold", price: 0.105, wantPriceStatus: nordpool.PriceGood},
+		{name: "PriceHigher", price: 0.12, wantPriceStatus: nordpool.PriceTooBig},
+		{name: "PriceLower", price: 0.09, wantPriceStatus: nordpool.PriceGood},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			priceStatus := NewFlowsState(tt.price, 0.10, wallbox.LockedWaiting).PriceStatus
+			if priceStatus != tt.wantPriceStatus {
+				t.Errorf("TestNewFlowsState() = %s, want %s", priceStatus, tt.wantPriceStatus)
+			}
+		})
+	}
+}
