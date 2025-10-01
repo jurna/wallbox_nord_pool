@@ -81,15 +81,15 @@ go test ./internal/flow -run TestDoFlow
 go test ./internal/flow -run TestNewFlowsState
 ```
 
-**Build for Lambda (Linux/AMD64):**
+**Build for Lambda (Linux/AMD64 with custom runtime):**
 ```bash
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap
 ```
 
 **Create deployment package:**
 ```bash
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
-zip wallbox_nord_pool.zip wallbox_nord_pool
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap
+zip wallbox_nord_pool.zip bootstrap
 ```
 
 ## Environment Variables
