@@ -23,10 +23,10 @@ jobs:
           go-version: '1.21'
 
       - name: Build
-        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap
 
       - name: Zip
-        run: zip wallbox_nord_pool.zip wallbox_nord_pool
+        run: zip wallbox_nord_pool.zip bootstrap
 
       - uses: ncipollo/release-action@v1.13.0
         with:
