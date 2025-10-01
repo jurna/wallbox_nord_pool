@@ -53,9 +53,10 @@ func TestFindMinPriceNight(t *testing.T) {
 	}{
 		{name: "Empty", prices: []Price{}, wantPrice: math.MaxFloat64},
 		{name: "Single", prices: []Price{{Timestamp: 1690840800, Price: 100}}, wantPrice: 0.15},
-		{name: "First lower", prices: []Price{{Timestamp: 1690840800, Price: 100}, {Timestamp: 1690844400, Price: 200}}, wantPrice: 0.15},
-		{name: "Second lower", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690844400, Price: 100}}, wantPrice: 0.15},
-		{name: "Three prices", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690844400, Price: 100}, {Timestamp: 1690848000, Price: 200}}, wantPrice: 0.15},
+		{name: "First lower", prices: []Price{{Timestamp: 1690840800, Price: 100}, {Timestamp: 1690841700, Price: 200}}, wantPrice: 0.15},
+		{name: "Second lower", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690841700, Price: 100}}, wantPrice: 0.15},
+		{name: "Three prices", prices: []Price{{Timestamp: 1690840800, Price: 200}, {Timestamp: 1690841700, Price: 100}, {Timestamp: 1690842600, Price: 200}}, wantPrice: 0.15},
+		{name: "Multiple 15-min intervals", prices: []Price{{Timestamp: 1690840800, Price: 300}, {Timestamp: 1690841700, Price: 200}, {Timestamp: 1690842600, Price: 100}, {Timestamp: 1690843500, Price: 150}}, wantPrice: 0.15},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,6 +88,7 @@ func TestFindMinPriceDay(t *testing.T) {
 	}{
 		//{name: "Empty", prices: []Price{}, wantPrice: math.MaxFloat64},
 		{name: "Single", prices: []Price{{Timestamp: 1690880400, Price: 100}}, wantPrice: 0.20},
+		{name: "Multiple 15-min intervals", prices: []Price{{Timestamp: 1690880400, Price: 250}, {Timestamp: 1690881300, Price: 150}, {Timestamp: 1690882200, Price: 100}}, wantPrice: 0.20},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

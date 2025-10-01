@@ -99,7 +99,7 @@ func findMinPrice(config NordPoolConfig, prices []Price, locationDate time.Time)
 		if poolPrice < price {
 			price = poolPrice
 		}
-		locationDate = locationDate.Add(time.Hour)
+		locationDate = locationDate.Add(15 * time.Minute)
 	}
 	return
 }
@@ -153,7 +153,7 @@ func calculatePrice(date time.Time, poolPrice float64, config NordPoolConfig) (p
 }
 
 func findPrice(prices []Price, date time.Time) (price float64, err error) {
-	timestamp := date.Truncate(time.Hour).Unix()
+	timestamp := date.Truncate(15 * time.Minute).Unix()
 	log.Printf("Looking for price at %d, date %s", timestamp, date)
 	for _, p := range prices {
 		if p.Timestamp == timestamp {
