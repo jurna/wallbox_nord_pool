@@ -102,3 +102,6 @@ zip wallbox_nord_pool.zip wallbox_nord_pool
 - Flow logic tests verify state machine transitions and price threshold calculations
 - Price threshold is 0.01 (1 cent difference between current and desired price)
 - Charge deadline logic differs between day period (uses `charge-till-hour-night`) and night period (uses `charge-till-hour-day`)
+
+## Git 
+- Use concise git commit messages
