@@ -179,6 +179,10 @@ func fetchDates(s3svc *s3.S3, awsS3Bucket string, date time.Time) (prices Prices
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return prices, fmt.Errorf("unexpected status %d from %s", resp.StatusCode, req.URL)
+	}
 	pricesBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
